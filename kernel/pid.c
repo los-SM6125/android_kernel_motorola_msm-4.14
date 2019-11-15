@@ -295,7 +295,8 @@ void free_pid(struct pid *pid)
 	call_rcu(&pid->rcu, delayed_put_pid);
 }
 
-struct pid *alloc_pid(struct pid_namespace *ns)
+struct pid *alloc_pid(struct pid_namespace *ns, pid_t *set_tid,
+		      size_t set_tid_size)
 {
 	struct pid *pid;
 	enum pid_type type;
@@ -304,6 +305,17 @@ struct pid *alloc_pid(struct pid_namespace *ns)
 	struct upid *upid;
 	int retval = -ENOMEM;
 
+	/*
+	 * set_tid_size contains the size of the set_tid array. Starting at
+	 * the most nested currently active PID namespace it tells alloc_pid()
+	 * which PID to set for a process in that most nested PID namespace
+	 * up to set_tid_size PID namespaces. It does not have to set the PID
+	 * for a process in all nested PID namespaces but set_tid_size must
+	 * never be greater than the current ns->level + 1.
+	 */
+	if (set_tid_size > ns->level + 1)
+		return ERR_PTR(-EINVAL);
+
 	pid = kmem_cache_alloc(ns->pid_cachep, GFP_KERNEL);
 	if (!pid)
 		return ERR_PTR(retval);
@@ -311,7 +323,52 @@ struct pid *alloc_pid(struct pid_namespace *ns)
 	tmp = ns;
 	pid->level = ns->level;
 	for (i = ns->level; i >= 0; i--) {
-		nr = alloc_pidmap(tmp);
+		int tid = 0;
+
+		if (set_tid_size) {
+			tid = set_tid[ns->level - i];
+
+			retval = -EINVAL;
+			if (tid < 1 || tid >= pid_max)
+				goto out_free;
+			/*
+			 * Also fail if a PID != 1 is requested and
+			 * no PID 1 exists.
+			 */
+			if (tid != 1 && !tmp->child_reaper)
+				goto out_free;
+			retval = -EPERM;
+			if (!ns_capable(tmp->user_ns, CAP_SYS_ADMIN))
+				goto out_free;
+			set_tid_size--;
+		}
+
+		if (tid) {
+			struct pidmap *map = &tmp->pidmap[tid / BITS_PER_PAGE];
+			int offset = tid & BITS_PER_PAGE_MASK;
+
+			if (unlikely(!map->page)) {
+				void *page = kzalloc(PAGE_SIZE, GFP_KERNEL);
+
+				spin_lock_irq(&pidmap_lock);
+				if (!map->page) {
+					map->page = page;
+					page = NULL;
+				}
+				spin_unlock_irq(&pidmap_lock);
+				kfree(page);
+			}
+			if (unlikely(!map->page)) {
+				nr = -ENOMEM;
+			} else if (!test_and_set_bit(offset, map->page)) {
+				atomic_dec(&map->nr_free);
+				nr = tid;
+			} else {
+				nr = -EEXIST;
+			}
+		} else {
+			nr = alloc_pidmap(tmp);
+		}
 		if (nr < 0) {
 			retval = nr;
 			goto out_free;

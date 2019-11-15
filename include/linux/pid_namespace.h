@@ -20,6 +20,9 @@ struct pidmap {
 #define BITS_PER_PAGE_MASK	(BITS_PER_PAGE-1)
 #define PIDMAP_ENTRIES		((PID_MAX_LIMIT+BITS_PER_PAGE-1)/BITS_PER_PAGE)
 
+/* MAX_PID_NS_LEVEL is needed for limiting size of 'struct pid' */
+#define MAX_PID_NS_LEVEL 32
+
 struct fs_pin;
 
 enum { /* definitions for pid_namespace's hide_pid field */
