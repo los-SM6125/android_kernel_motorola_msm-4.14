@@ -74,6 +74,11 @@ page faults, it has to verify that uffdio_api.features has appropriate
 UFFD_FEATURE_EVENT_* bits set. These events are described in more
 detail below in "Non-cooperative userfaultfd" section.
 
+- UFFD_FEATURE_MINOR_HUGETLBFS indicates that the kernel supports
+  UFFDIO_REGISTER_MODE_MINOR registration for hugetlbfs virtual memory
+  areas. UFFD_FEATURE_MINOR_SHMEM is the analogous feature indicating
+  support for shmem virtual memory areas.
+
 Once the userfaultfd has been enabled the UFFDIO_REGISTER ioctl should
 be invoked (if present in the returned uffdio_api.ioctls bitmask) to
 register a memory range in the userfaultfd by setting the
