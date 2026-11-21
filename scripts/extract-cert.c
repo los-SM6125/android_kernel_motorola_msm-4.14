@@ -12,6 +12,7 @@
  * of the licence, or (at your option) any later version.
  */
 #define _GNU_SOURCE
+#define OPENSSL_ENGINE_STUBS
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
