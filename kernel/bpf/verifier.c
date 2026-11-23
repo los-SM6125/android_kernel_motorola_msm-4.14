@@ -5110,9 +5110,13 @@ skip_full_check:
 	if (ret == 0)
 		ret = fixup_bpf_calls(env);
 
-	if (log->level && bpf_verifier_log_full(log)) {
-		ret = -ENOSPC;
-	}
+	/*
+	 * ANDROID: Do not fail to load if log buffer passed in from userspace
+	 * is too small.
+	 */
+	//if (log->level && bpf_verifier_log_full(log)) {
+	//	ret = -ENOSPC;
+	//}
 
 	if (log->level && !log->ubuf) {
 		ret = -EFAULT;
