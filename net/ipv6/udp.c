@@ -447,6 +447,9 @@ try_again:
 						    inet6_iif(skb));
 		}
 		*addr_len = sizeof(*sin6);
+
+		BPF_CGROUP_RUN_PROG_UDP6_RECVMSG_LOCK(sk,
+						      (struct sockaddr *)sin6);
 	}
 
 	if (udp_sk(sk)->gro_enabled)
@@ -1286,6 +1289,11 @@ do_udp_sendmsg:
 	memset(&fl6, 0, sizeof(fl6));
 
 	if (sin6) {
+		err = BPF_CGROUP_RUN_PROG_UDP6_SENDMSG_LOCK(sk,
+						    (struct sockaddr *)sin6);
+		if (err)
+			return err;
+
 		if (sin6->sin6_port == 0)
 			return -EINVAL;
 
