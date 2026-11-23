@@ -1612,6 +1612,26 @@ int bpf_prog_array_length(struct bpf_prog_array __rcu *progs)
 	return cnt;
 }
 
+bool bpf_prog_array_is_empty(struct bpf_prog_array __rcu *array)
+{
+	struct bpf_prog_array *arr;
+	struct bpf_prog **prog;
+	bool empty = true;
+
+	rcu_read_lock();
+	arr = rcu_dereference(array);
+	if (arr) {
+		for (prog = arr->progs; *prog; prog++) {
+			if (*prog != &dummy_bpf_prog.prog) {
+				empty = false;
+				break;
+			}
+		}
+	}
+	rcu_read_unlock();
+	return empty;
+}
+
 int bpf_prog_array_copy_to_user(struct bpf_prog_array __rcu *progs,
 				__u32 __user *prog_ids, u32 cnt)
 {
