@@ -13,6 +13,16 @@ struct timespec {
 };
 #endif
 
+#ifdef __KERNEL__
+#ifndef _STRUCT_KERNEL_TIMESPEC
+#define _STRUCT_KERNEL_TIMESPEC
+struct __kernel_timespec {
+	__s64		tv_sec;			/* seconds */
+	long long	tv_nsec;		/* nanoseconds */
+};
+#endif
+#endif
+
 struct timeval {
 	__kernel_time_t		tv_sec;		/* seconds */
 	__kernel_suseconds_t	tv_usec;	/* microseconds */
