@@ -786,6 +786,10 @@ KBUILD_CFLAGS += $(call cc-option, -Wno-sometimes-uninitialized)
 # Quiet clang warning: comparison of unsigned expression < 0 is always false
 
 KBUILD_CFLAGS += $(call cc-disable-warning, tautological-compare)
+KBUILD_CFLAGS += $(call cc-disable-warning, enum-conversion)
+KBUILD_CFLAGS += $(call cc-disable-warning, single-bit-bitfield-constant-conversion)
+KBUILD_CFLAGS += $(call cc-disable-warning, bitwise-instead-of-logical)
+KBUILD_CFLAGS += $(call cc-disable-warning, array-parameter)
 # CLANG uses a _MergedGlobals as optimization, but this breaks modpost, as the
 # source of a reference will be _MergedGlobals and not on of the whitelisted names.
 # See modpost pattern 2
@@ -794,15 +798,15 @@ KBUILD_CFLAGS += $(call cc-option, -fcatch-undefined-behavior)
 else
 
 KBUILD_CFLAGS += $(call cc-option,-fno-delete-null-pointer-checks,)
-# These warnings generated too much noise in a regular build.
-# Use make W=1 to enable them (see scripts/Makefile.extrawarn)
-KBUILD_CFLAGS += $(call cc-disable-warning, unused-but-set-variable)
 endif
 
 ifeq ($(ld-name),lld)
 LDFLAGS += -O2
 endif
 
+# These warnings generated too much noise in a regular build.
+# Use make W=1 to enable them (see scripts/Makefile.extrawarn)
+KBUILD_CFLAGS += $(call cc-disable-warning, unused-but-set-variable)
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-const-variable)
 ifdef CONFIG_FRAME_POINTER
 KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
@@ -985,7 +989,12 @@ KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
 KBUILD_CFLAGS   += $(call cc-option,-Werror=implicit-int)
 
 # require functions to have arguments in prototypes, not empty 'int foo()'
+ifneq ($(cc-name),clang)
 KBUILD_CFLAGS   += $(call cc-option,-Werror=strict-prototypes)
+else
+KBUILD_CFLAGS   += $(call cc-disable-warning, strict-prototypes)
+KBUILD_CFLAGS   += $(call cc-disable-warning, deprecated-non-prototype)
+endif
 
 # Prohibit date/time macros, which would make the build non-deterministic
 KBUILD_CFLAGS   += $(call cc-option,-Werror=date-time)

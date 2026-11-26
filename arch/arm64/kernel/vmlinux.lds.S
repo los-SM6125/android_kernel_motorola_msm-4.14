@@ -101,6 +101,8 @@ SECTIONS
 		*(.interp .dynamic)
 		*(.dynsym .dynstr .hash .gnu.hash)
 		*(.eh_frame)
+		*(.note.gnu.property)
+		*(.note.GNU-stack)
 	}
 
 	. = KIMAGE_VADDR + TEXT_OFFSET;
@@ -118,6 +120,8 @@ SECTIONS
 			SOFTIRQENTRY_TEXT
 			ENTRY_TEXT
 			TEXT_TEXT
+			*(.text.unlikely .text.unlikely.*)
+			*(.text.hot .text.hot.*)
 			SCHED_TEXT
 			CPUIDLE_TEXT
 			LOCK_TEXT
@@ -192,6 +196,10 @@ SECTIONS
 	__relr_offset	= ABSOLUTE(ADDR(.relr.dyn) - KIMAGE_VADDR);
 	__relr_size	= SIZEOF(.relr.dyn);
 #endif
+
+	.plt : { *(.plt) *(.plt.*) *(.iplt) *(.igot .igot.plt) }
+	.data.rel.ro : { *(.data.rel.ro) *(.data.rel.ro.*) }
+	.got.plt : { *(.got.plt) }
 
 	. = ALIGN(SEGMENT_ALIGN);
 	__initdata_end = .;
