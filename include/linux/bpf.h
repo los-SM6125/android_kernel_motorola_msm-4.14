@@ -20,6 +20,7 @@
 struct perf_event;
 struct bpf_prog;
 struct bpf_map;
+struct btf;
 
 /* map is generic key/value storage optionally accesible by eBPF programs */
 struct bpf_map_ops {
@@ -61,6 +62,9 @@ struct bpf_map {
 	u32 pages;
 	u32 id;
 	int numa_node;
+	u32 btf_key_type_id;
+	u32 btf_value_type_id;
+	struct btf *btf;
 	bool unpriv_array;
 	/* 7 bytes hole */
 
@@ -99,6 +103,7 @@ enum bpf_arg_type {
 
 	ARG_PTR_TO_CTX,		/* pointer to context */
 	ARG_ANYTHING,		/* any (initialized) argument is ok */
+	ARG_PTR_TO_SOCK_COMMON,	/* pointer to sock_common */
 };
 
 /* type of values returned from helper functions */
@@ -106,6 +111,7 @@ enum bpf_return_type {
 	RET_INTEGER,			/* function returns integer */
 	RET_VOID,			/* function doesn't return anything */
 	RET_PTR_TO_MAP_VALUE_OR_NULL,	/* returns a pointer to map elem value or NULL */
+	RET_PTR_TO_SOCKET_OR_NULL,	/* returns a pointer to a socket or NULL */
 };
 
 /* eBPF function prototype used by verifier to allow BPF_CALLs from eBPF programs
@@ -155,6 +161,10 @@ enum bpf_reg_type {
 	PTR_TO_STACK,		 /* reg == frame_pointer + offset */
 	PTR_TO_PACKET,		 /* reg points to skb->data */
 	PTR_TO_PACKET_END,	 /* skb->data + headlen */
+	PTR_TO_SOCKET,		 /* reg points to struct bpf_sock */
+	PTR_TO_SOCKET_OR_NULL,	 /* reg points to struct bpf_sock or NULL */
+	PTR_TO_SOCK_COMMON,	 /* reg points to sock_common */
+	PTR_TO_SOCK_COMMON_OR_NULL, /* reg points to sock_common or NULL */
 };
 
 /* The information passed from prog-specific *_is_valid_access
@@ -511,6 +521,16 @@ static inline bool bpf_prog_is_dev_bound(struct bpf_prog_aux *aux)
 {
 	return aux->offload;
 }
+
+bool bpf_sock_is_valid_access(int off, int size, enum bpf_access_type type,
+			      struct bpf_insn_access_aux *info);
+bool bpf_sock_common_is_valid_access(int off, int size,
+				     enum bpf_access_type type,
+				     struct bpf_insn_access_aux *info);
+u32 bpf_sock_convert_ctx_access(enum bpf_access_type type,
+				const struct bpf_insn *si,
+				struct bpf_insn *insn_buf,
+				struct bpf_prog *prog, u32 *target_size);
 #else
 static inline int bpf_prog_offload_init(struct bpf_prog *prog,
 					union bpf_attr *attr)
@@ -521,6 +541,29 @@ static inline int bpf_prog_offload_init(struct bpf_prog *prog,
 static inline bool bpf_prog_is_dev_bound(struct bpf_prog_aux *aux)
 {
 	return false;
+}
+
+static inline bool bpf_sock_is_valid_access(int off, int size,
+					    enum bpf_access_type type,
+					    struct bpf_insn_access_aux *info)
+{
+	return false;
+}
+
+static inline bool bpf_sock_common_is_valid_access(int off, int size,
+						   enum bpf_access_type type,
+						   struct bpf_insn_access_aux *info)
+{
+	return false;
+}
+
+static inline u32 bpf_sock_convert_ctx_access(enum bpf_access_type type,
+					      const struct bpf_insn *si,
+					      struct bpf_insn *insn_buf,
+					      struct bpf_prog *prog,
+					      u32 *target_size)
+{
+	return 0;
 }
 #endif /* CONFIG_NET && CONFIG_BPF_SYSCALL */
 
