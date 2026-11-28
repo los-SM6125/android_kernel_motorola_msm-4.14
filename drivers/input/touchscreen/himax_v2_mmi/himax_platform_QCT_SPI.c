@@ -348,6 +348,7 @@ int himax_bus_write_command(uint8_t command, uint8_t toRetry)
 {
 	return himax_bus_write(command, NULL, 0, toRetry);
 }
+EXPORT_SYMBOL(himax_bus_write_command);
 
 int himax_bus_master_write(uint8_t *data, uint32_t length, uint8_t toRetry)
 {
